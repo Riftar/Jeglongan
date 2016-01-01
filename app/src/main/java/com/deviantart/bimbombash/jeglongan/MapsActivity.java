@@ -31,8 +31,15 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import com.parse.FindCallback;
 import com.parse.Parse;
+import com.parse.ParseException;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity
         implements
@@ -90,7 +97,7 @@ public class MapsActivity extends FragmentActivity
     public TextView lat;
     public TextView lang;
 
-    ParseObject parseMarker = new ParseObject("MarkerPosition");
+    ParseObject parseMarker;
 
 
     @Override
@@ -119,6 +126,7 @@ public class MapsActivity extends FragmentActivity
         userMarker      = new MarkerOptions()
                 .position(defaultLocation)
                 .title("Anda")
+                .snippet("apa ini saya ?")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
         
         potholeMarker   = new MarkerOptions()
@@ -134,6 +142,7 @@ public class MapsActivity extends FragmentActivity
 
         Parse.enableLocalDatastore(this);
         Parse.initialize(this, "pZMFXpqkOSTeiI79BaqFTLqldv6oMMoa65xm3Kpi", "KUikuTVJpppmpQQmwQECUVy9QJLan2LAsv0W6nsg");
+        parseMarker = new ParseObject("MarkerPosition");
     }
 
     @Override
@@ -162,12 +171,11 @@ public class MapsActivity extends FragmentActivity
         zCallibratedMaximumAcceleration = sharedpreferences.getFloat("zForce",0f);
 
         yAccelration_MAX = yCallibratedMaximumAcceleration;
-        yAccelration_MIN = yAccelration_MAX - 0.5f;
-
         zAccelration_MAX = zCallibratedMaximumAcceleration;
+
+        yAccelration_MIN = yAccelration_MAX - 0.5f;
         zAccelration_MIN = zAccelration_MAX - 0.5f;
 
-        //calibrate = sharedpreferences.getBoolean("calibrate",true);
     }
 
     private void setupView(){
@@ -241,9 +249,10 @@ public class MapsActivity extends FragmentActivity
     }
 
     private void addMarkerToMap(LatLng latLng) {
-        //TODO add marker
         MarkerOptions marker   = new MarkerOptions()
-                .position(latLng).title("Kubangan");
+                .position(latLng)
+                .title("Kubangan baru")
+                .snippet(latLng.toString() + " Korban: 0 ");
 
         mMap.addMarker(marker);
 
@@ -251,11 +260,38 @@ public class MapsActivity extends FragmentActivity
     }
 
     private void addLatLongToParse(LatLng latLng){
-
-        double[] coord = {latLng.latitude, latLng.longitude};
-
-        parseMarker.put("LongLat", coord);
+        parseMarker.put("Lat", latLng.latitude);
+        parseMarker.put("Lng", latLng.longitude);
+        parseMarker.put("Counter", 1);
         parseMarker.saveInBackground();
+    }
+
+    private void DrawMarker(){
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("MarkerPosition");
+        query.findInBackground(new FindCallback<ParseObject>() {
+            public void done(List<ParseObject> markers, ParseException e) {
+                if (e == null) {
+                    // your logic here
+                    for (ParseObject marker: markers) {
+
+                        Double lat = marker.getDouble("Lat");
+                        Double lng = marker.getDouble("Lng");
+                        LatLng latLng = new LatLng(lat,lng);
+
+                        int counter = marker.getInt("Counter");
+                        String name = marker.getString("ObjectID");
+
+                        MarkerOptions mo = new MarkerOptions()
+                                .position(latLng)
+                                .title("Kubangan" + name)
+                                .snippet(latLng.toString() + counter + " Korban: 0");
+                    }
+                } else {
+                    // handle Parse Exception here
+                    Log.d(TAG, "parse draw error");
+                }
+            }
+        });
     }
 
     @Override
@@ -274,13 +310,9 @@ public class MapsActivity extends FragmentActivity
 
         myLocation = new LatLng(currentlatitude, currentlongitude);
 
-        userMarker.position(myLocation);
+        //TODO: User Marker Here
 
-        if (old!= null) old.remove();
-
-        old = mMap.addMarker(userMarker);
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myLocation,14));
 
     }
 
