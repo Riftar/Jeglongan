@@ -90,7 +90,7 @@ public class MapsActivity extends FragmentActivity
     public TextView lat;
     public TextView lang;
 
-    ParseObject testObject = new ParseObject("TestObject");
+    ParseObject parseMarker = new ParseObject("MarkerPosition");
 
 
     @Override
@@ -131,14 +131,9 @@ public class MapsActivity extends FragmentActivity
         ygravityMaxView.setText(Float.toString(yCallibratedMaximumAcceleration));
         zgravityMaxView.setText(Float.toString(zCallibratedMaximumAcceleration));
         createLocationRequest();
-        // Enable Local Datastore.
 
         Parse.enableLocalDatastore(this);
-
         Parse.initialize(this, "pZMFXpqkOSTeiI79BaqFTLqldv6oMMoa65xm3Kpi", "KUikuTVJpppmpQQmwQECUVy9QJLan2LAsv0W6nsg");
-
-        //testObject.put("foo", "bar");
-        //testObject.saveInBackground();
     }
 
     @Override
@@ -187,19 +182,7 @@ public class MapsActivity extends FragmentActivity
         tombolLapor.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                potholeMarker.position(myLocation);
-
-                mMap.addMarker(potholeMarker);
-
-                Toast.makeText(MapsActivity.this, "Kubangan Terdeteksi", Toast.LENGTH_SHORT).show();
-
-                //testObject.put("lat", myLocation.latitude);
-                testObject.put("long", myLocation.longitude);
-                //testObject.add("latLang", Arrays.asList(myLocation.latitude,myLocation.longitude));
-                //testObject.put("latLang",myLocation);
-                testObject.put("foo", "test variabel");
-                testObject.saveInBackground();
+                addMarkerToMap(myLocation);
             }
         });
     }
@@ -219,29 +202,6 @@ public class MapsActivity extends FragmentActivity
 
     private void setUpMap() {
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        //mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
-    }
-
-    private void handleNewLocation(Location location){
-        Log.d(TAG, location.toString());
-
-        double currentlatitude = location.getLatitude();
-        double currentlongitude = location.getLongitude();
-
-        lat.setText(Double.toString(currentlatitude));
-        lang.setText(Double.toString(currentlongitude));
-
-        myLocation = new LatLng(currentlatitude,currentlongitude);
-
-        userMarker.position(myLocation);
-
-
-        if (old!= null)old.remove();
-
-        old = mMap.addMarker(userMarker);
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
-
     }
 
     protected void createLocationRequest(){
@@ -271,23 +231,56 @@ public class MapsActivity extends FragmentActivity
 
             if (yAccelration_NOW>=yAccelration_MIN){
                 addMarkerToMap(myLocation);
+                addLatLongToParse(myLocation);
             }
             if (zAccelration_NOW>=zAccelration_MIN){
                 addMarkerToMap(myLocation);
+                addLatLongToParse(myLocation);
             }
         }
     }
+
     private void addMarkerToMap(LatLng latLng) {
         //TODO add marker
-        
-        potholeMarker.position(myLocation);
-        mMap.addMarker(potholeMarker);
-        
+        MarkerOptions marker   = new MarkerOptions()
+                .position(latLng).title("Kubangan");
+
+        mMap.addMarker(marker);
+
         Toast.makeText(MapsActivity.this, "Kubangan Terdeteksi", Toast.LENGTH_SHORT).show();
     }
 
+    private void addLatLongToParse(LatLng latLng){
+
+        double[] coord = {latLng.latitude, latLng.longitude};
+
+        parseMarker.put("LongLat", coord);
+        parseMarker.saveInBackground();
+    }
+
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    public void onLocationChanged(Location location) {
+        handleNewLocation(location);
+    }
+
+    private void handleNewLocation(Location location){
+        Log.d(TAG, location.toString());
+
+        double currentlatitude = location.getLatitude();
+        double currentlongitude = location.getLongitude();
+
+        lat .setText(Double.toString(currentlatitude));
+        lang.setText(Double.toString(currentlongitude));
+
+        myLocation = new LatLng(currentlatitude, currentlongitude);
+
+        userMarker.position(myLocation);
+
+        if (old!= null) old.remove();
+
+        old = mMap.addMarker(userMarker);
+
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(myLocation));
 
     }
 
@@ -301,6 +294,13 @@ public class MapsActivity extends FragmentActivity
         else{
             handleNewLocation(location);
         }
+    }
+
+    // region As is
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 
     @Override
@@ -329,11 +329,6 @@ public class MapsActivity extends FragmentActivity
     }
 
     @Override
-    public void onLocationChanged(Location location) {
-        handleNewLocation(location);
-    }
-
-    @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
 
     }
@@ -348,4 +343,5 @@ public class MapsActivity extends FragmentActivity
 
     }
 
+    //endregion
 }
