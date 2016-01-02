@@ -30,16 +30,23 @@
         <activity
             android:name=".MapsActivity"
             android:label="@string/title_activity_maps" >
-
         </activity>
         <activity
             android:name=".Calibration"
             android:label="@string/title_activity_calibration" >
+        </activity>
+        <activity
+            android:name=".jeglongansplash"
+            android:label="@string/title_activity_jeglongansplash" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".GetInfo"
+            android:label="@string/title_activity_get_info" >
         </activity>
     </application>
 
