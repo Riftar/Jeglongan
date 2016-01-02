@@ -31,9 +31,7 @@ public class Jeglongan{
         return latLng;
     }
 
-    public List<String> getBerita() {
-        return berita;
-    }
+
 
     private List<String> berita;
 
