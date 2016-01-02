@@ -31,8 +31,6 @@ public class Jeglongan{
         return latLng;
     }
 
-
-
     private List<String> berita;
 
     Jeglongan(String ID, Marker marker, int counter) {

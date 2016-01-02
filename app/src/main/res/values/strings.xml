@@ -7,4 +7,5 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_jeglongansplash">Jeglongan</string>
     <string name="title_activity_get_info">GetInfo</string>
+    <string name="title_activity_jeglonangan_detail">JeglonanganDetail</string>
 </resources>

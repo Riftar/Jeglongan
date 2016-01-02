@@ -59,7 +59,7 @@ public class jeglongansplash extends AppCompatActivity {
     public void decide (){
         //putData();
         if (calibrated){
-            Intent intent = new Intent(this,GetInfo.class);
+            Intent intent = new Intent(this,MapsActivity.class);
             startActivity(intent);
         }
         if (!calibrated){

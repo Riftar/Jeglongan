@@ -55,7 +55,8 @@ public class MapsActivity extends FragmentActivity
 
         SensorEventListener,
 
-        com.google.android.gms.location.LocationListener
+        com.google.android.gms.location.LocationListener,
+        com.google.android.gms.maps.GoogleMap.OnMarkerClickListener
 {
 
 
@@ -93,7 +94,7 @@ public class MapsActivity extends FragmentActivity
 
     // Inti dari kuliah satu semester ini
     ParseObject parseMarker;
-    public List<Jeglongan> jeglonganList;
+    public Hashtable<String,Jeglongan> jeglonganHashtable = new Hashtable<String,Jeglongan>();
 
 
     @Override
@@ -125,6 +126,8 @@ public class MapsActivity extends FragmentActivity
                 .snippet("apa ini saya ?")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
 
+        mMap.setOnMarkerClickListener(this);
+
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
@@ -133,7 +136,7 @@ public class MapsActivity extends FragmentActivity
         Parse.initialize(this, "pZMFXpqkOSTeiI79BaqFTLqldv6oMMoa65xm3Kpi", "KUikuTVJpppmpQQmwQECUVy9QJLan2LAsv0W6nsg");
         parseMarker = new ParseObject("MarkerPosition");
 
-        DrawMarker();
+        DrawMarkerFromParse();
 
         ygravityMaxView.setText(Float.toString(yCallibratedMaximumAcceleration));
         zgravityMaxView.setText(Float.toString(zCallibratedMaximumAcceleration));
@@ -187,7 +190,8 @@ public class MapsActivity extends FragmentActivity
         tombolLapor.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addMarkerToMap(myLocation);
+                addLatLongToParse(myLocation);
+                addNewMarkerToMap(myLocation);
             }
         });
     }
@@ -240,21 +244,22 @@ public class MapsActivity extends FragmentActivity
             zgravityCurrentView.setText(Float.toString(zAccelration_NOW));
 
             if (yAccelration_NOW>=yAccelration_MIN){
-                addMarkerToMap(myLocation);
                 addLatLongToParse(myLocation);
+                addNewMarkerToMap(myLocation);
             }
             if (zAccelration_NOW>=zAccelration_MIN){
-                addMarkerToMap(myLocation);
                 addLatLongToParse(myLocation);
+                addNewMarkerToMap(myLocation);
             }
         }
     }
 
-    private void addMarkerToMap(LatLng latLng) {
+    private void addNewMarkerToMap(LatLng latLng) {
         MarkerOptions marker   = new MarkerOptions()
                 .position(latLng)
                 .title("Kubangan baru")
-                .snippet(latLng.toString() + " Korban: 0 ");
+                .snippet(latLng.toString() + " Korban: anda ")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
 
         mMap.addMarker(marker);
 
@@ -266,23 +271,32 @@ public class MapsActivity extends FragmentActivity
         parseMarker.put("Lng", latLng.longitude);
         parseMarker.put("Counter", 1);
         parseMarker.saveInBackground();
+
     }
 
-    private void DrawMarker(){
+    private void DrawMarkerFromParse(){
         ParseQuery<ParseObject> query = ParseQuery.getQuery("MarkerPosition");
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> markers, ParseException e) {
                 if (e == null) {
                     // Extract data dari parse
-                    for (ParseObject marker: markers) {
+                    for (ParseObject marker : markers) {
 
                         // LatLng
                         Double lat = marker.getDouble("Lat");
                         Double lng = marker.getDouble("Lng");
-                        LatLng latLng = new LatLng(lat,lng);
+                        LatLng latLng = new LatLng(lat, lng);
 
-                        // Counter
+                        // Counter & Warna Marker
                         int counter = marker.getInt("Counter");
+                        float iconColor;
+                        if (counter < 10) {
+                            iconColor = BitmapDescriptorFactory.HUE_GREEN;
+                        } else if (counter < 20) {
+                            iconColor = BitmapDescriptorFactory.HUE_YELLOW;
+                        } else {
+                            iconColor = BitmapDescriptorFactory.HUE_RED;
+                        }
 
                         // ID
                         String ID = marker.getObjectId();
@@ -292,14 +306,14 @@ public class MapsActivity extends FragmentActivity
                                 .position(latLng)
                                 .title("Kubangan " + ID)
                                 .snippet(latLng.toString() + " Korban: " + counter)
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+                                .icon(BitmapDescriptorFactory.defaultMarker(iconColor)));
 
                         // Object Jeglongan
                         Jeglongan jeglongan = new Jeglongan(ID, jeglonganMarker, counter);
 
-                        jeglonganList.add(jeglongan);
+                        jeglonganHashtable.put(ID, jeglongan);
 
-                        Log.d(TAG, "ID jeglongan :" + marker.getObjectId() + " " + latLng.toString() + " Korban: " + counter);
+                        Log.d(TAG, "ID jeglongan: " + marker.getObjectId() + " " + latLng.toString() + " Korban: " + counter);
                     }
                 } else {
                     // handle Parse Exception here
@@ -343,6 +357,27 @@ public class MapsActivity extends FragmentActivity
         else{
             handleNewLocation(location);
         }
+    }
+
+    /**
+     *
+     *  listener marker
+     *
+     * @param marker
+     * @return
+     */
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        String title = marker.getTitle();
+        String ID = title.replaceAll("Kubangan ", "");
+
+        Jeglongan jeglonganYangDiClick = jeglonganHashtable.get(ID);
+
+        Log.d(TAG, "Jeglongan " + ID + " di click " + jeglonganYangDiClick.getCounter());
+
+        //TODO passing object jeglongan ke detail
+
+        return false;
     }
 
     // region As is
