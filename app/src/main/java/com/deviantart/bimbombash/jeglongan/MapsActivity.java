@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -39,6 +40,8 @@ import com.parse.ParseObject;
 import com.parse.ParseQuery;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity
@@ -73,11 +76,10 @@ public class MapsActivity extends FragmentActivity
     public TextView ygravityCurrentView;
     public TextView zgravityMaxView;
     public TextView zgravityCurrentView;
+    public TextView lattitudeView;
+    public TextView longitudeView;
 
     MarkerOptions userMarker;
-    MarkerOptions potholeMarker;
-    Marker old;
-    Marker pothole;
 
     private float yAccelration_NOW;
     private float yAccelration_MAX;
@@ -88,16 +90,10 @@ public class MapsActivity extends FragmentActivity
     private float yCallibratedMaximumAcceleration;
     private float zCallibratedMaximumAcceleration;
 
-    private int red = Color.argb(25, 255, 0, 0);
-    //private int blue = Color.rgb(75,90,255);
-    //private int white = Color.rgb(245,245,245);
 
-    private boolean calibrate;
-
-    public TextView lat;
-    public TextView lang;
-
+    // Inti dari kuliah satu semester ini
     ParseObject parseMarker;
+    public List<Jeglongan> jeglonganList;
 
 
     @Override
@@ -105,7 +101,7 @@ public class MapsActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
 
         Bundle intent = getIntent().getExtras();
-        
+
         getCallibrationData();
 
         setContentView(R.layout.activity_maps);
@@ -128,21 +124,21 @@ public class MapsActivity extends FragmentActivity
                 .title("Anda")
                 .snippet("apa ini saya ?")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
-        
-        potholeMarker   = new MarkerOptions()
-                .position(defaultLocation).title("Kubangan");
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
 
+        Parse.enableLocalDatastore(this);
+        Parse.initialize(this, "pZMFXpqkOSTeiI79BaqFTLqldv6oMMoa65xm3Kpi", "KUikuTVJpppmpQQmwQECUVy9QJLan2LAsv0W6nsg");
+        parseMarker = new ParseObject("MarkerPosition");
+
+        DrawMarker();
+
         ygravityMaxView.setText(Float.toString(yCallibratedMaximumAcceleration));
         zgravityMaxView.setText(Float.toString(zCallibratedMaximumAcceleration));
         createLocationRequest();
 
-        Parse.enableLocalDatastore(this);
-        Parse.initialize(this, "pZMFXpqkOSTeiI79BaqFTLqldv6oMMoa65xm3Kpi", "KUikuTVJpppmpQQmwQECUVy9QJLan2LAsv0W6nsg");
-        parseMarker = new ParseObject("MarkerPosition");
     }
 
     @Override
@@ -183,9 +179,9 @@ public class MapsActivity extends FragmentActivity
         ygravityCurrentView = (TextView) findViewById(R.id.textView7);
         zgravityMaxView     = (TextView) findViewById(R.id.textView9);
         zgravityCurrentView = (TextView) findViewById(R.id.textView11);
-        lang                = (TextView) findViewById(R.id.textView12);
-        lat                 = (TextView) findViewById(R.id.textView13);
-        
+        longitudeView       = (TextView) findViewById(R.id.textView12);
+        lattitudeView       = (TextView) findViewById(R.id.textView13);
+
         final Button tombolLapor = (Button) findViewById(R.id.button);
         tombolLapor.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -209,7 +205,11 @@ public class MapsActivity extends FragmentActivity
     }
 
     private void setUpMap() {
+        // Normal Type Map
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+
+        // Layer Google Map
+        mMap.setMyLocationEnabled(true);
     }
 
     protected void createLocationRequest(){
@@ -225,6 +225,7 @@ public class MapsActivity extends FragmentActivity
             LocationServices.FusedLocationApi.requestLocationUpdates(
                     mGoogleApiClient, mLocationRequest, this);
     }
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -271,28 +272,43 @@ public class MapsActivity extends FragmentActivity
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> markers, ParseException e) {
                 if (e == null) {
-                    // your logic here
+                    // Extract data dari parse
                     for (ParseObject marker: markers) {
 
+                        // LatLng
                         Double lat = marker.getDouble("Lat");
                         Double lng = marker.getDouble("Lng");
                         LatLng latLng = new LatLng(lat,lng);
 
+                        // Counter
                         int counter = marker.getInt("Counter");
-                        String name = marker.getString("ObjectID");
 
-                        MarkerOptions mo = new MarkerOptions()
+                        // ID
+                        String ID = marker.getObjectId();
+
+                        // Marker
+                        Marker jeglonganMarker = mMap.addMarker(new MarkerOptions()
                                 .position(latLng)
-                                .title("Kubangan" + name)
-                                .snippet(latLng.toString() + counter + " Korban: 0");
+                                .title("Kubangan " + ID)
+                                .snippet(latLng.toString() + " Korban: " + counter)
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+
+                        // Object Jeglongan
+                        Jeglongan jeglongan = new Jeglongan(ID, jeglonganMarker, counter);
+
+                        jeglonganList.add(jeglongan);
+
+                        Log.d(TAG, "ID jeglongan :" + marker.getObjectId() + " " + latLng.toString() + " Korban: " + counter);
                     }
                 } else {
                     // handle Parse Exception here
-                    Log.d(TAG, "parse draw error");
+                    Log.d(TAG, "parse draw marker error");
                 }
             }
         });
     }
+
+
 
     @Override
     public void onLocationChanged(Location location) {
@@ -305,8 +321,8 @@ public class MapsActivity extends FragmentActivity
         double currentlatitude = location.getLatitude();
         double currentlongitude = location.getLongitude();
 
-        lat .setText(Double.toString(currentlatitude));
-        lang.setText(Double.toString(currentlongitude));
+        lattitudeView.setText(Double.toString(currentlatitude));
+        longitudeView.setText(Double.toString(currentlongitude));
 
         myLocation = new LatLng(currentlatitude, currentlongitude);
 
