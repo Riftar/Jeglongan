@@ -100,7 +100,7 @@ public class MapsActivity extends FragmentActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Bundle intent = getIntent().getExtras();
+        //Bundle intent = getIntent().getExtras();
 
         getCallibrationData();
 
@@ -147,6 +147,7 @@ public class MapsActivity extends FragmentActivity
         setUpMapIfNeeded();
         mGoogleApiClient.connect();
         mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
+        getCallibrationData();
     }
 
 
@@ -163,8 +164,8 @@ public class MapsActivity extends FragmentActivity
     public void getCallibrationData(){
         SharedPreferences sharedpreferences = getSharedPreferences("dataCalibration", Context.MODE_PRIVATE);
 
-        yCallibratedMaximumAcceleration = sharedpreferences.getFloat("yForce",0f);
-        zCallibratedMaximumAcceleration = sharedpreferences.getFloat("zForce",0f);
+        yCallibratedMaximumAcceleration = sharedpreferences.getFloat("yForce",17f);
+        zCallibratedMaximumAcceleration = sharedpreferences.getFloat("zForce",17f);
 
         yAccelration_MAX = yCallibratedMaximumAcceleration;
         zAccelration_MAX = zCallibratedMaximumAcceleration;
